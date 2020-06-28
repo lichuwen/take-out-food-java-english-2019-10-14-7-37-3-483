@@ -15,44 +15,59 @@ public class App {
 
     public String bestCharge(List<String> inputs){
         //TODO: write code here
-        int num = inputs.size();
-        String[] item = new String[num];
-        String[] itemId = new String[num];
-        int count = 0;
 
+        // the info of inputs
+        int num = inputs.size();
+        int count = 0;
+        String item = "";
+        String itemId = "";
+
+        // get the info of testData
         List<String> id = itemRepository.findAll().stream().map(Item::getId).collect(Collectors.toList());
         List<String> name = itemRepository.findAll().stream().map(Item::getName).collect(Collectors.toList());
         List<Double> price = itemRepository.findAll().stream().map(Item::getPrice).collect(Collectors.toList());
-
         List<String> promotion = salesPromotionRepository.findAll().stream().map(SalesPromotion::getDisplayName).collect(Collectors.toList());
-//      List<String> pro_item = salesPromotionRepository.findAll().stream().map(SalesPromotion::getRelatedItems).collect(Collectors.toList());
+        List<List<String>> discount_item = salesPromotionRepository.findAll().stream().map(SalesPromotion::getRelatedItems).collect(Collectors.toList());
 
-        int total = 0,discount1=0,discount2=0;
-        String item_name = "";
-        String item_res = "";
-        String pro_item = "";
+        // the info of final result
         boolean flag = false;
         int item_price = 0;
         int total_yuan = 0;
         int saving = 0;
+        int total = 0, discount1 = 0, discount2 = 0;
+        String item_name = "";
+        String item_res = "";
+        String pro_item = "";
         String pro_display = "";
         String res = "";
 
-        for (int i=0; i<num; i++){
-            item[i] = inputs.get(i); //输入的每个item信息
-            count = item[i].charAt(item[i].length()-1) - '0'; //每个item分割后的数量
-            itemId[i] = item[i].substring(0, item[i].indexOf(" ")); //每个item分割后的id
+        //get the info of Half price for certain dishes
+        int[] findHalfPriceItem = new int[num];
+        String[] certainDishes = new String[10];
+        for(int i=0; i<discount_item.get(1).size(); i++){
+            certainDishes[i] = discount_item.get(1).get(i);
+        }
 
-            int index = id.indexOf(itemId[i]);
+        for (int i=0; i<num; i++){
+            item = inputs.get(i); //输入的每个item信息
+            count = item.charAt(item.length()-1) - '0'; //每个item分割后的数量
+            itemId = item.substring(0, item.indexOf(" ")); //每个item分割后的id
+
+            int index = id.indexOf(itemId);
             item_name = name.get(index);
             item_price = price.get(index).intValue();
-            total += item_price * count;
-            if(itemId[i].equals("ITEM0001") || itemId[i].equals("ITEM0022")){
-                discount2 += item_price / 2 * count;
-                pro_item += item_name + "，";
-                flag = true;
+            total += item_price * count; //no discount with all items
+
+            for(int j=0; j<certainDishes.length; j++){
+                if(itemId.equals(certainDishes[j])){
+                    discount2 += item_price / 2 * count;
+                    pro_item += item_name + "，"; // the record of promotion
+                    flag = true; // represent that that has discount2
+                    findHalfPriceItem[i] = 1;
+                    break;
+                }
             }
-            else{
+            if(findHalfPriceItem[i] == 0) {
                 discount2 += item_price * count;
             }
             item_res += item_name + " x " + count + " = " + item_price * count + " yuan\n";
@@ -60,7 +75,7 @@ public class App {
 
         if(total > 30){
             discount1 = total - 6;
-            flag = true;
+            flag = true; // represent that has discount1
         }
         if(flag){
             if(discount1 > discount2){
